@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fresh Coat Work Order Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--green:#5aad2e;--green-d:#3d7a1e;--green-l:#e8f5df;--dark:#111111;--navy:#1a1a2e;--mid:#444444;--gray:#888888;--border:#e0e0e0;--bg:#f7f7f4;--white:#ffffff;--radius:14px;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{height:100%;overflow:hidden;}
+body{font-family:'Sora',system-ui,sans-serif;background:var(--bg);color:var(--dark);height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+.view{display:none;}.view.active{display:block;min-height:100vh;}
+.top-bar{background:var(--dark);padding:16px 18px 12px;display:flex;align-items:center;gap:11px;position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(0,0,0,.35);}
+.fc-mark{background:var(--green);width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:19px;color:#fff;flex-shrink:0;}
+.top-bar-title{font-family:'Bebas Neue',sans-serif;font-size:19px;color:#fff;letter-spacing:1px;line-height:1;}
+.top-bar-sub{font-size:9.5px;color:#999;font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-top:1px;}
+.top-bar-action{margin-left:auto;display:flex;gap:6px;}
+.pill-btn{padding:7px 14px;border-radius:20px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:all .15s;}
+.pill-btn.light{background:#222;color:#aaa;border:1.5px solid #333;}
+.pill-btn.green{background:var(--green);color:#fff;}
+.pill-btn:active{transform:scale(.96);}
+.job-type-bar{background:#1c1c1c;padding:10px 16px;display:flex;gap:8px;align-items:center;}
+.job-type-bar span{font-size:10px;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-right:2px;}
+.type-tab{flex:1;padding:9px 4px;border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid #333;background:transparent;color:#666;text-align:center;transition:all .15s;}
+.type-tab.int-active{background:var(--green);border-color:var(--green);color:#fff;}
+.type-tab.ext-active{background:#2563eb;border-color:#2563eb;color:#fff;}
+.type-tab.both-active{background:#7c3aed;border-color:#7c3aed;color:#fff;}
+.steps{display:flex;align-items:center;padding:13px 20px;background:var(--white);border-bottom:1px solid var(--border);}
+.step-item{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;}
+.step-item:not(:last-child)::after{content:'';position:absolute;right:0;top:11px;width:50%;height:2px;background:var(--border);}
+.step-item:not(:first-child)::before{content:'';position:absolute;left:0;top:11px;width:50%;height:2px;background:var(--border);}
+.step-item.done::after,.step-item.done::before,.step-item.active::before{background:var(--green);}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--border);color:var(--gray);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;position:relative;z-index:1;transition:all .2s;}
+.step-item.active .step-num{background:var(--green);color:#fff;}
+.step-item.done .step-num{background:var(--green-d);color:#fff;}
+.step-lbl{font-size:8.5px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;margin-top:4px;}
+.step-item.active .step-lbl,.step-item.done .step-lbl{color:var(--green-d);}
+.page-content{padding:14px 14px 20px;}
+.card{background:var(--white);border-radius:var(--radius);border:1.5px solid var(--border);margin-bottom:12px;overflow:hidden;}
+.card-head{padding:11px 15px;background:var(--dark);}
+.card-head-title{font-family:'Bebas Neue',sans-serif;font-size:17px;color:#fff;letter-spacing:.8px;}
+.card-body{padding:13px 15px;}
+.field{margin-bottom:11px;}
+.field:last-child{margin-bottom:0;}
+.field label{display:block;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray);margin-bottom:4px;}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:14px;color:var(--dark);background:var(--bg);-webkit-appearance:none;appearance:none;transition:border-color .15s;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--green);background:#fff;}
+.field textarea{resize:none;min-height:58px;line-height:1.5;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.room-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.room-chip{border:2px solid var(--border);border-radius:10px;padding:11px 10px;cursor:pointer;transition:all .15s;display:flex;align-items:flex-start;gap:8px;user-select:none;}
+.room-chip.selected{border-color:var(--green);background:var(--green-l);}
+.rchk{width:19px;height:19px;border-radius:5px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;margin-top:1px;}
+.room-chip.selected .rchk{background:var(--green);border-color:var(--green);}
+.rchk svg{display:none;}
+.room-chip.selected .rchk svg{display:block;}
+.room-chip-label{font-size:12.5px;font-weight:600;line-height:1.2;}
+.qty-wrap{margin-top:5px;}
+.qty-select{width:100%;padding:5px 8px;border:1.5px solid var(--green);border-radius:6px;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:var(--green-d);background:#fff;-webkit-appearance:none;appearance:none;cursor:pointer;}
+.side-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);}
+.side-row:last-child{border-bottom:none;}
+.side-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;color:white;flex-shrink:0;background:#ccc;transition:background .2s;}
+.side-icon.on{background:#2563eb;}
+.side-lbl{font-size:13px;font-weight:600;flex:1;}
+.toggle-sw{position:relative;width:44px;height:24px;flex-shrink:0;}
+.toggle-sw input{opacity:0;width:0;height:0;}
+.toggle-sw .slider{position:absolute;inset:0;background:#ccc;border-radius:24px;cursor:pointer;transition:.3s;}
+.toggle-sw .slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;}
+.toggle-sw input:checked + .slider{background:#2563eb;}
+.toggle-sw input:checked + .slider::before{transform:translateX(20px);}
+.room-form{border:1.5px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
+.room-form-hdr{padding:10px 13px;background:#f0f0ee;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+.room-form-title{font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:8px;}
+.form-lbl{font-size:10.5px;color:var(--gray);}
+.room-form-body{padding:13px;background:#fff;display:none;}
+.room-form-body.open{display:block;}
+.color-sheen-row{display:grid;grid-template-columns:2fr 1fr;gap:8px;}
+.sec-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray);margin:10px 0 5px;}
+.task-row{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:1px solid #f2f2f0;cursor:pointer;user-select:none;}
+.task-row:last-of-type{border-bottom:none;}
+.mchk{width:19px;height:19px;border-radius:5px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;margin-top:1px;}
+.mchk.on{background:var(--green);border-color:var(--green);}
+.mchk svg{display:none;width:10px;}
+.mchk.on svg{display:block;}
+.task-lbl{font-size:13px;line-height:1.35;}
+.side-card{background:var(--white);border-radius:var(--radius);border:1.5px solid #bcd4f5;margin-bottom:12px;overflow:hidden;}
+.side-card-hdr{background:#1e3a5f;padding:12px 15px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+.side-card-title{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#fff;letter-spacing:1px;display:flex;align-items:center;gap:10px;}
+.side-card-lbl{font-size:10px;color:#7eb3e8;}
+.side-card-body{padding:13px 15px;display:none;}
+.side-card-body.open{display:block;}
+.scope-item{border:1.5px solid var(--border);border-radius:10px;margin-bottom:7px;overflow:hidden;}
+.scope-hdr{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fafaf8;cursor:pointer;user-select:none;}
+.scope-hdr.active{background:#eef4ff;border-bottom:1px solid #bcd4f5;}
+.scope-name{font-size:13px;font-weight:600;flex:1;}
+.scope-body{padding:12px;background:#fff;display:none;}
+.scope-body.open{display:block;}
+.cta{display:block;width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:11px;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(90,173,46,.32);transition:all .15s;margin-top:4px;letter-spacing:.2px;text-align:center;}
+.cta:active{transform:scale(.98);}
+.cta.outline{background:transparent;border:1.5px solid #333;color:#aaa;box-shadow:none;}
+.wo-head{background:var(--dark);padding:18px 18px 14px;text-align:center;}
+.wo-title{font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;letter-spacing:2px;}
+.wo-badge{display:inline-block;color:#fff;font-size:10.5px;font-weight:700;padding:4px 12px;border-radius:20px;margin-top:6px;letter-spacing:.5px;}
+.wo-badge.int{background:var(--green);}
+.wo-badge.ext{background:#2563eb;}
+.wo-badge.both{background:#7c3aed;}
+.wo-info-strip{background:#1c1c1c;padding:13px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.wo-info-lbl{font-size:8.5px;color:#666;text-transform:uppercase;letter-spacing:.5px;font-weight:700;}
+.wo-info-val{font-size:12.5px;color:#fff;font-weight:600;margin-top:2px;}
+.wo-room{background:#fff;border-bottom:1.5px solid var(--border);}
+.wo-room-hdr{background:var(--dark);padding:9px 15px;font-family:'Bebas Neue',sans-serif;font-size:17px;color:#fff;letter-spacing:1px;}
+.wo-room-hdr.ext{background:#1e3a5f;}
+.wo-room-body{padding:11px 15px;}
+.wo-checklist{list-style:none;}
+.wo-checklist li{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #f5f5f3;font-size:12.5px;}
+.wo-checklist li:last-child{border-bottom:none;}
+.wo-empty-box{width:19px;height:19px;border-radius:5px;border:2px solid var(--border);flex-shrink:0;margin-top:1px;}
+.wo-color-tag{display:inline-block;font-size:11px;font-weight:600;background:#f5f5f3;border:1px solid var(--border);padding:3px 9px;border-radius:6px;margin:4px 4px 0 0;}
+.wo-notes{font-size:11.5px;color:var(--mid);font-style:italic;background:#fafaf8;border-left:3px solid var(--green);padding:7px 10px;border-radius:0 6px 6px 0;margin-top:7px;line-height:1.5;}
+.wo-notes.ext{border-left-color:#2563eb;}
+.wo-signoff{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;padding:10px 14px;background:#fafaf8;border-top:1px solid var(--border);}
+.wo-sign-box{border:1.5px dashed var(--border);border-radius:8px;padding:9px 6px;text-align:center;}
+.wo-sign-lbl{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray);margin-bottom:6px;}
+.wo-sign-line{height:22px;border-bottom:1.5px solid var(--border);}
+.wo-divider{background:#2563eb;padding:8px 15px;font-family:'Bebas Neue',sans-serif;font-size:14px;color:#fff;letter-spacing:1.5px;text-align:center;}
+.action-bar{display:flex;gap:8px;padding:11px 14px;background:var(--dark);position:sticky;bottom:0;z-index:200;}
+.dr-room-row{border:1.5px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden;}
+.dr-row-toggle{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fafaf8;cursor:pointer;user-select:none;}
+.dr-row-toggle.active{background:var(--green-l);border-bottom:1px solid var(--border);}
+.dr-row-name{font-size:13px;font-weight:600;flex:1;}
+.dr-row-body{padding:12px;display:none;background:#fff;}
+.dr-row-body.open{display:block;}
+.paint-entry{background:#fafaf8;border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;}
+.remove-btn{font-size:11px;color:#e03c3c;font-weight:700;cursor:pointer;padding:2px 6px;border-radius:4px;background:#fde8e8;border:none;}
+.toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(50px);background:#111;color:#fff;padding:10px 18px;border-radius:20px;font-size:12.5px;font-weight:600;transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:999;white-space:nowrap;pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+@media print{.top-bar,.action-bar,.toast,.job-type-bar{display:none !important;}.view{display:block !important;}#view-builder,#view-daily{display:none !important;}body,html{overflow:visible;}}
+</style>
+</head>
+<body>
+
+<!-- VIEW 1: BUILDER -->
+
+<div class="view active" id="view-builder">
+  <div class="top-bar">
+    <div class="fc-mark">FC</div>
+    <div><div class="top-bar-title">Work Order Generator</div><div class="top-bar-sub">Fresh Coat Surfaces</div></div>
+    <div class="top-bar-action"><button class="pill-btn green" onclick="generateOrder()">Generate</button></div>
+  </div>
+  <div class="job-type-bar">
+    <span>Type:</span>
+    <button class="type-tab int-active" id="tab-int" onclick="setJobType('INT')">Interior</button>
+    <button class="type-tab" id="tab-ext" onclick="setJobType('EXT')">Exterior</button>
+    <button class="type-tab" id="tab-both" onclick="setJobType('BOTH')">Both</button>
+  </div>
+  <div class="steps">
+    <div class="step-item active" id="s1"><div class="step-num">1</div><div class="step-lbl">Job Info</div></div>
+    <div class="step-item" id="s2"><div class="step-num">2</div><div class="step-lbl">Scope</div></div>
+    <div class="step-item" id="s3"><div class="step-num">3</div><div class="step-lbl">Details</div></div>
+  </div>
+
+  <!-- STEP 1 -->
+
+  <div class="page-content" id="sp1">
+    <div class="card">
+      <div class="card-head"><div class="card-head-title">Job Information</div></div>
+      <div class="card-body">
+        <div class="grid2">
+          <div class="field"><label>Job ID / Name</label><input type="text" id="jobId" placeholder="e.g. 5018 St Ives"></div>
+          <div class="field"><label>Start Date</label><input type="date" id="startDate"></div>
+        </div>
+        <div class="field"><label>Customer Name</label><input type="text" id="custName" placeholder="Full name"></div>
+        <div class="field"><label>Customer Phone</label><input type="tel" id="custPhone" placeholder="615.000.0000"></div>
+        <div class="field"><label>Address</label><input type="text" id="jobAddr" placeholder="Street address, city, state, zip"></div>
+        <div class="grid2">
+          <div class="field"><label>Project Lead</label><input type="text" id="projLead" placeholder="Crew lead name"></div>
+          <div class="field"><label>Project Manager</label><input type="text" id="projMgr" placeholder="PM name"></div>
+        </div>
+      </div>
+    </div>
+    <button class="cta" onclick="goStep(2)">Next: Select Scope</button>
+  </div>
+
+  <!-- STEP 2 -->
+
+  <div class="page-content" id="sp2" style="display:none;">
+    <div id="int-scope-wrap">
+      <div class="card">
+        <div class="card-head"><div class="card-head-title">Interior Rooms</div></div>
+        <div class="card-body"><div class="room-grid" id="roomGrid"></div></div>
+      </div>
+    </div>
+    <div id="ext-scope-wrap" style="display:none;">
+      <div class="card">
+        <div class="card-head" style="background:#1e3a5f;"><div class="card-head-title">Exterior Sides</div></div>
+        <div class="card-body"><div id="sideToggles"></div></div>
+      </div>
+    </div>
+    <button class="cta" onclick="goStep(3)">Next: Add Details</button>
+  </div>
+
+  <!-- STEP 3 -->
+
+  <div class="page-content" id="sp3" style="display:none;">
+    <div id="int-detail-wrap"><div id="roomForms"></div></div>
+    <div id="ext-detail-wrap" style="display:none;"><div id="sideForms"></div></div>
+    <button class="cta" onclick="generateOrder()">Generate Work Order</button>
+  </div>
+</div>
+
+<!-- VIEW 2: GENERATED WO -->
+
+<div class="view" id="view-order">
+  <div class="top-bar">
+    <div class="fc-mark">FC</div>
+    <div><div class="top-bar-title">Work Order</div><div class="top-bar-sub" id="woSubtitle">Ready to send</div></div>
+    <div class="top-bar-action"><button class="pill-btn light" onclick="switchView('view-builder')">Edit</button></div>
+  </div>
+  <div id="woOutput"></div>
+  <div class="action-bar">
+    <button class="cta outline" style="flex:1;" onclick="window.print()">Print / PDF</button>
+    <button class="cta" style="flex:1;background:var(--navy);box-shadow:none;border:1.5px solid #333;" onclick="openDailyReport()">Daily Report</button>
+  </div>
+</div>
+
+<!-- VIEW 3: DAILY REPORT -->
+
+<div class="view" id="view-daily">
+  <div class="top-bar">
+    <div class="fc-mark" style="background:var(--navy);font-size:15px;">DR</div>
+    <div><div class="top-bar-title">Daily Report</div><div class="top-bar-sub">End of Day - Team Lead</div></div>
+    <div class="top-bar-action"><button class="pill-btn light" onclick="switchView('view-order')">Back</button></div>
+  </div>
+  <div class="page-content">
+    <div class="card">
+      <div class="card-head"><div class="card-head-title">Job Info and Time</div></div>
+      <div class="card-body">
+        <div class="grid2">
+          <div class="field"><label>Date</label><input type="date" id="dr-date"></div>
+          <div class="field"><label>Job / Address</label><input type="text" id="dr-job" placeholder="e.g. 5018 St Ives"></div>
+        </div>
+        <div class="field"><label>Team Lead Name</label><input type="text" id="dr-lead" placeholder="Your name"></div>
+        <div class="field"><label>PM Email</label><input type="email" id="dr-pmemail" placeholder="pm@freshcoatsurfaces.com"></div>
+        <div class="grid2">
+          <div class="field"><label>Start Time</label><input type="time" id="dr-start"></div>
+          <div class="field"><label>End Time</label><input type="time" id="dr-end"></div>
+        </div>
+        <div class="field"><label>Total Crew on Site</label><select id="dr-crew"><option value="">Select...</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6+</option></select></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-head-title">Work Completed Today</div></div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">Tap each area worked on today.</p>
+        <div id="dr-area-list"></div>
+        <button class="cta outline" style="padding:10px;font-size:12px;margin-top:6px;" onclick="addCustomArea()">+ Add Unlisted Area</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-head-title">Paint Used</div></div>
+      <div class="card-body">
+        <div id="paint-entries">
+          <div class="paint-entry">
+            <div class="grid2" style="margin-bottom:6px;">
+              <div class="field" style="margin-bottom:0;"><label>Color Name</label><input type="text" class="pe-color" placeholder="e.g. Repose Gray"></div>
+              <div class="field" style="margin-bottom:0;"><label>Gallons Used</label><input type="number" class="pe-gal" placeholder="2" step="0.5" min="0"></div>
+            </div>
+            <div class="field"><label>Sheen / Product</label><input type="text" class="pe-sheen" placeholder="e.g. SW Emerald Eggshell"></div>
+          </div>
+        </div>
+        <button class="cta outline" style="padding:10px;font-size:12px;margin-top:4px;" onclick="addPaintEntry()">+ Add Another Paint</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-head-title">Issues and Blockers</div></div>
+      <div class="card-body"><div class="field" style="margin-bottom:0;"><label>Describe any issues or items needing PM attention</label><textarea id="dr-issues" style="min-height:80px;" placeholder="e.g. Drywall damage found in back bedroom not in original scope..."></textarea></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-head-title">Photos and General Notes</div></div>
+      <div class="card-body">
+        <div class="field"><label>General Notes</label><textarea id="dr-notes" style="min-height:70px;" placeholder="Site conditions, customer interactions, anything else PM should know..."></textarea></div>
+        <div class="field" style="margin-bottom:0;"><label>Photo Note - attach photos in email</label><textarea id="dr-photos" style="min-height:50px;" placeholder="e.g. 3 photos attached - entry repair before/after, kitchen progress"></textarea></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-head-title">Tomorrows Plan</div></div>
+      <div class="card-body"><div class="field" style="margin-bottom:0;"><label>Plan for tomorrow</label><textarea id="dr-tomorrow" style="min-height:80px;" placeholder="e.g. Finish living room walls AM, start hallway doors PM..."></textarea></div></div>
+    </div>
+    <button class="cta" onclick="sendDailyReport()">Send Report to PM</button>
+    <p style="font-size:11px;color:var(--gray);text-align:center;margin-top:10px;padding-bottom:40px;">Opens email app pre-filled. Attach job photos before sending.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var CHECK = '<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+var SHEENS = ['Flat','Matte','Eggshell','Satin','Semi-Gloss','Gloss'];
+var INT_ROOMS = [
+  {id:'bedroom',label:'Bedroom',qty:['1','2','3','4','5','5+']},
+  {id:'living',label:'Living Room',qty:null},
+  {id:'kitchen',label:'Kitchen',qty:null},
+  {id:'bathroom',label:'Bathroom',qty:['1','2','3','3+']},
+  {id:'office',label:'Office',qty:null},
+  {id:'bonus',label:'Bonus Room',qty:null},
+  {id:'stairwell',label:'Stairwell',qty:null},
+  {id:'closet',label:'Closet',qty:['1','2','3','4','5','5+']},
+  {id:'hallway',label:'Hallway',qty:['1','2','3','3+']},
+  {id:'dining',label:'Dining Room',qty:null},
+  {id:'garage',label:'Garage',qty:null},
+  {id:'laundry',label:'Laundry Room',qty:null},
+  {id:'entry',label:'Entry Way',qty:null}
+];
+var EXT_SIDES = [
+  {id:'front',label:'Front Side',icon:'F'},
+  {id:'back',label:'Back Side',icon:'B'},
+  {id:'left',label:'Left Side',icon:'L'},
+  {id:'right',label:'Right Side',icon:'R'}
+];
+var EXT_ITEMS = [
+  {id:'siding',label:'Siding / Walls',qty:false},
+  {id:'soffits',label:'Soffits',qty:false},
+  {id:'fascia',label:'Fascia',qty:false},
+  {id:'trim',label:'Trim',qty:false},
+  {id:'shutters',label:'Shutters',qty:true,opts:['1','2','3','4','5','6','7','8','8+']},
+  {id:'doors',label:'Doors',qty:true,opts:['1','2','3','4']},
+  {id:'frames',label:'Door Frames',qty:true,opts:['1','2','3','4']},
+  {id:'windows',label:'Windows / Window Trim',qty:false},
+  {id:'garage',label:'Garage Door',qty:true,opts:['1','2']},
+  {id:'gutters',label:'Gutters',qty:false},
+  {id:'porch',label:'Porch / Deck',qty:false},
+  {id:'columns',label:'Columns',qty:true,opts:['1','2','3','4','5','6','6+']},
+  {id:'foundation',label:'Foundation / Skirt',qty:false}
+];
+var INT_TASKS = ['Walls','Ceiling','Trim / Baseboards','Doors','Patch / Repairs','Caulk as needed'];
+
+var jobType = 'INT';
+var currentStep = 1;
+var roomSel = {};
+var sideOn = {};
+var paintCount = 1;
+
+function setJobType(t) {
+  jobType = t;
+  document.getElementById('tab-int').className = 'type-tab' + (t==='INT'?' int-active':'');
+  document.getElementById('tab-ext').className = 'type-tab' + (t==='EXT'?' ext-active':'');
+  document.getElementById('tab-both').className = 'type-tab' + (t==='BOTH'?' both-active':'');
+}
+
+function goStep(n) {
+  document.getElementById('sp'+currentStep).style.display = 'none';
+  document.getElementById('s'+currentStep).classList.remove('active');
+  document.getElementById('s'+currentStep).classList.add('done');
+  currentStep = n;
+  document.getElementById('sp'+n).style.display = 'block';
+  document.getElementById('s'+n).classList.add('active');
+  scrollTop();
+  if (n===2) buildScope();
+  if (n===3) buildDetails();
+}
+
+function buildScope() {
+  var showInt = jobType==='INT'||jobType==='BOTH';
+  var showExt = jobType==='EXT'||jobType==='BOTH';
+  document.getElementById('int-scope-wrap').style.display = showInt?'block':'none';
+  document.getElementById('ext-scope-wrap').style.display = showExt?'block':'none';
+  if (showInt) buildRoomGrid();
+  if (showExt) buildSideToggles();
+}
+
+function buildRoomGrid() {
+  var grid = document.getElementById('roomGrid');
+  grid.innerHTML = '';
+  INT_ROOMS.forEach(function(r) {
+    var isSel = r.id in roomSel;
+    var chip = document.createElement('div');
+    chip.className = 'room-chip'+(isSel?' selected':'');
+    chip.dataset.id = r.id;
+    if (r.qty) {
+      var curQty = roomSel[r.id]||'';
+      var opts = r.qty.map(function(q){return '<option value="'+q+'"'+(curQty===q?' selected':'')+'>'+q+'</option>';}).join('');
+      chip.innerHTML = '<div class="rchk" id="rc-'+r.id+'">'+CHECK+'</div>'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div class="room-chip-label">'+r.label+'</div>'+
+          '<div class="qty-wrap" id="qw-'+r.id+'" style="display:'+(isSel?'block':'none')+';">'+
+            '<select class="qty-select" id="qty-'+r.id+'" onchange="setRQty(\''+r.id+'\',this.value)" onclick="event.stopPropagation()">'+
+              '<option value="">Qty...</option>'+opts+
+            '</select>'+
+          '</div>'+
+        '</div>';
+      chip.onclick = function(e) {
+        if (e.target.tagName==='SELECT'||e.target.tagName==='OPTION') return;
+        toggleRoomQty(r.id);
+      };
+    } else {
+      chip.innerHTML = '<div class="rchk">'+CHECK+'</div><span class="room-chip-label">'+r.label+'</span>';
+      chip.onclick = function() { toggleSimpleRoom(r.id, chip); };
+    }
+    grid.appendChild(chip);
+  });
+}
+
+function toggleRoomQty(id) {
+  var chip = document.querySelector('.room-chip[data-id="'+id+'"]');
+  var qw = document.getElementById('qw-'+id);
+  if (id in roomSel) {
+    delete roomSel[id];
+    chip.classList.remove('selected');
+    if (qw) qw.style.display='none';
+  } else {
+    roomSel[id]='';
+    chip.classList.add('selected');
+    if (qw) qw.style.display='block';
+  }
+}
+function toggleSimpleRoom(id, chip) {
+  if (id in roomSel) { delete roomSel[id]; chip.classList.remove('selected'); }
+  else { roomSel[id]='1'; chip.classList.add('selected'); }
+}
+function setRQty(id,val) { if (id in roomSel) roomSel[id]=val; }
+
+function buildSideToggles() {
+  var wrap = document.getElementById('sideToggles');
+  wrap.innerHTML = '';
+  EXT_SIDES.forEach(function(side) {
+    var isOn = !!sideOn[side.id];
+    var row = document.createElement('div');
+    row.className = 'side-row';
+    row.innerHTML = '<div class="side-icon'+(isOn?' on':'')+'" id="si-icon-'+side.id+'">'+side.icon+'</div>'+
+      '<span class="side-lbl">'+side.label+'</span>'+
+      '<label class="toggle-sw"><input type="checkbox" id="sw-'+side.id+'"'+(isOn?' checked':'')+' onchange="toggleSide(\''+side.id+'\',this.checked)"><span class="slider"></span></label>';
+    wrap.appendChild(row);
+  });
+}
+function toggleSide(id, on) {
+  sideOn[id] = on;
+  var icon = document.getElementById('si-icon-'+id);
+  if (icon) icon.className = 'side-icon'+(on?' on':'');
+}
+
+function buildDetails() {
+  var showInt = jobType==='INT'||jobType==='BOTH';
+  var showExt = jobType==='EXT'||jobType==='BOTH';
+  document.getElementById('int-detail-wrap').style.display = showInt?'block':'none';
+  document.getElementById('ext-detail-wrap').style.display = showExt?'block':'none';
+  if (showInt) buildRoomForms();
+  if (showExt) buildSideForms();
+}
+
+function buildRoomForms() {
+  var wrap = document.getElementById('roomForms');
+  wrap.innerHTML = '';
+  var sel = INT_ROOMS.filter(function(r){return r.id in roomSel;});
+  if (!sel.length) { wrap.innerHTML='<p style="color:var(--gray);font-size:13px;text-align:center;padding:16px 0;">No rooms selected.</p>'; return; }
+  sel.forEach(function(room) {
+    var qty = roomSel[room.id];
+    var qtyLbl = room.qty&&qty?' (x'+qty+')':'';
+    var sheenOpts = SHEENS.map(function(s){return '<option>'+s+'</option>';}).join('');
+    var taskRows = INT_TASKS.map(function(t){
+      return '<div class="task-row" onclick="toggleCheck(this)"><div class="mchk on">'+CHECK+'</div><span class="task-lbl">'+t+'</span></div>';
+    }).join('');
+    var div = document.createElement('div');
+    div.className = 'room-form';
+    div.id = 'rf-'+room.id;
+    div.innerHTML =
+      '<div class="room-form-hdr" onclick="toggleRF(\''+room.id+'\')">'+
+        '<div class="room-form-title">'+
+          '<span style="background:var(--green);color:#fff;width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;">'+CHECK+'</span>'+
+          room.label+qtyLbl+
+        '</div>'+
+        '<span class="form-lbl" id="fl-'+room.id+'">Expand</span>'+
+      '</div>'+
+      '<div class="room-form-body" id="rb-'+room.id+'">'+
+        '<div class="color-sheen-row" style="margin-bottom:8px;">'+
+          '<div class="field" style="margin-bottom:0;"><label>Paint Color</label><input type="text" data-room="'+room.id+'" data-field="color" placeholder="e.g. SW Repose Gray"></div>'+
+          '<div class="field" style="margin-bottom:0;"><label>Sheen</label><select data-room="'+room.id+'" data-field="sheen"><option value="">Sheen...</option>'+sheenOpts+'</select></div>'+
+        '</div>'+
+        '<div class="sec-lbl">Scope of Work</div>'+
+        taskRows+
+        '<div class="field" style="margin-top:10px;margin-bottom:0;"><label>Notes / Prep</label><textarea data-room="'+room.id+'" data-field="notes" placeholder="Prep conditions, special instructions..."></textarea></div>'+
+
+```
+  '</div>';
+wrap.appendChild(div);
+```
+
+});
+}
+function toggleRF(id) {
+var body = document.getElementById(‘rb-’+id);
+var lbl = document.getElementById(‘fl-’+id);
+var isOpen = body.classList.toggle(‘open’);
+lbl.textContent = isOpen?‘Collapse’:‘Expand’;
+}
+function toggleCheck(row) { row.querySelector(’.mchk’).classList.toggle(‘on’); }
+
+function buildSideForms() {
+var wrap = document.getElementById(‘sideForms’);
+wrap.innerHTML = ‘’;
+var active = EXT_SIDES.filter(function(s){return sideOn[s.id];});
+if (!active.length) { wrap.innerHTML=’<p style="color:var(--gray);font-size:13px;text-align:center;padding:16px 0;">No exterior sides selected.</p>’; return; }
+active.forEach(function(side) {
+var sheenOpts = SHEENS.map(function(s){return ‘<option>’+s+’</option>’;}).join(’’);
+var itemsHTML = EXT_ITEMS.map(function(item) {
+var qtyField = ‘’;
+if (item.qty) {
+var qOpts = item.opts.map(function(q){return ‘<option>’+q+’</option>’;}).join(’’);
+qtyField = ‘<div class="field"><label>Quantity</label><select data-side="'+side.id+'" data-item="'+item.id+'" data-field="qty"><option value="">Select qty…</option>’+qOpts+’</select></div>’;
+}
+return ‘<div class="scope-item" id="sc-'+side.id+'-'+item.id+'">’+
+‘<div class="scope-hdr" onclick="toggleScope(\''+side.id+'\',\''+item.id+'\')">’+
+‘<div class="mchk">’+CHECK+’</div>’+
+‘<span class="scope-name">’+item.label+’</span>’+
+‘<span style="font-size:10px;color:var(--gray);">v</span>’+
+‘</div>’+
+‘<div class="scope-body" id="sb-'+side.id+'-'+item.id+'">’+
+qtyField+
+‘<div class="color-sheen-row" style="margin-bottom:8px;">’+
+‘<div class="field" style="margin-bottom:0;"><label>Color</label><input type="text" data-side="'+side.id+'" data-item="'+item.id+'" data-field="color" placeholder="Color name / code"></div>’+
+‘<div class="field" style="margin-bottom:0;"><label>Sheen</label><select data-side="'+side.id+'" data-item="'+item.id+'" data-field="sheen"><option value="">Sheen…</option>’+sheenOpts+’</select></div>’+
+‘</div>’+
+‘<div class="field" style="margin-bottom:0;"><label>Notes / Prep</label><textarea data-side="'+side.id+'" data-item="'+item.id+'" data-field="notes" placeholder="e.g. Pressure wash, scrape loose paint, prime knots..." style="min-height:55px;"></textarea></div>’+
+‘</div>’+
+‘</div>’;
+}).join(’’);
+
+```
+var card = document.createElement('div');
+card.className = 'side-card';
+card.id = 'sdf-'+side.id;
+card.innerHTML =
+  '<div class="side-card-hdr" onclick="toggleSC(\''+side.id+'\')">'+
+    '<div class="side-card-title">'+
+      '<span style="background:#2563eb;color:#fff;width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;">'+side.icon+'</span>'+
+      side.label+
+    '</div>'+
+    '<span class="side-card-lbl" id="scl-'+side.id+'">Collapse</span>'+
+  '</div>'+
+  '<div class="side-card-body open" id="scb-'+side.id+'">'+
+    '<div class="field" style="margin-bottom:12px;"><label>General Side Notes</label><textarea data-side="'+side.id+'" data-field="side-notes" placeholder="Overall notes for this side - access, conditions, priority..." style="min-height:55px;"></textarea></div>'+
+    '<p style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:8px;">Scope Items - tap to include</p>'+
+    itemsHTML+
+  '</div>';
+wrap.appendChild(card);
+```
+
+});
+}
+function toggleSC(id) {
+var body = document.getElementById(‘scb-’+id);
+var lbl = document.getElementById(‘scl-’+id);
+var isOpen = body.classList.toggle(‘open’);
+lbl.textContent = isOpen?‘Collapse’:‘Expand’;
+}
+function toggleScope(sideId, itemId) {
+var hdr = document.querySelector(’#sc-’+sideId+’-’+itemId+’ .scope-hdr’);
+var body = document.getElementById(‘sb-’+sideId+’-’+itemId);
+var mchk = hdr.querySelector(’.mchk’);
+var isOn = mchk.classList.toggle(‘on’);
+hdr.classList.toggle(‘active’, isOn);
+body.classList.toggle(‘open’, isOn);
+}
+
+function generateOrder() {
+var jobId=gv(‘jobId’)||‘FCS-’+Date.now().toString().slice(-5);
+var custName=gv(‘custName’)||‘Customer’;
+var custPhone=gv(‘custPhone’);
+var addr=gv(‘jobAddr’);
+var startDate=gv(‘startDate’);
+var projLead=gv(‘projLead’)||’-’;
+var projMgr=gv(‘projMgr’)||’-’;
+var dateStr=startDate?new Date(startDate+‘T12:00:00’).toLocaleDateString(‘en-US’,{month:‘short’,day:‘numeric’,year:‘numeric’}):new Date().toLocaleDateString(‘en-US’,{month:‘short’,day:‘numeric’,year:‘numeric’});
+var typeLabel=jobType===‘INT’?‘INT - Interior’:jobType===‘EXT’?‘EXT - Exterior’:‘INT/EXT - Full’;
+var badgeClass=jobType===‘INT’?‘int’:jobType===‘EXT’?‘ext’:‘both’;
+
+var roomsHTML=’’;
+
+if (jobType===‘INT’||jobType===‘BOTH’) {
+INT_ROOMS.filter(function(r){return r.id in roomSel;}).forEach(function(room) {
+var qty=roomSel[room.id];
+var qtyLbl=room.qty&&qty?’ (x’+qty+’)’:’’;
+var colorEl=document.querySelector(‘input[data-room=”’+room.id+’”][data-field=“color”]’);
+var sheenEl=document.querySelector(‘select[data-room=”’+room.id+’”][data-field=“sheen”]’);
+var notesEl=document.querySelector(‘textarea[data-room=”’+room.id+’”][data-field=“notes”]’);
+var color=colorEl?colorEl.value.trim():’’;
+var sheen=sheenEl?sheenEl.value.trim():’’;
+var notes=notesEl?notesEl.value.trim():’’;
+var checked=document.querySelectorAll(’#rf-’+room.id+’ .mchk.on’);
+var tasks=Array.from(checked).map(function(m){return m.closest(’.task-row’).querySelector(’.task-lbl’).textContent;});
+var taskHTML=tasks.length?’<ul class="wo-checklist">’+tasks.map(function(t){return ‘<li><div class="wo-empty-box"></div>’+t+’</li>’;}).join(’’)+’</ul>’:’’;
+var colorTag=color?’<span class="wo-color-tag">Paint: ‘+color+(sheen?’ - ‘+sheen:’’)+’</span>’:’’;
+roomsHTML+=’<div class="wo-room"><div class="wo-room-hdr">’+room.label+qtyLbl+’</div><div class="wo-room-body">’+taskHTML+(colorTag?’<div style="margin-top:7px;">’+colorTag+’</div>’:’’)+(notes?’<div class="wo-notes">’+notes+’</div>’:’’)+’</div><div class="wo-signoff"><div class="wo-sign-box"><div class="wo-sign-lbl">Project Lead</div><div class="wo-sign-line"></div></div><div class="wo-sign-box"><div class="wo-sign-lbl">Customer</div><div class="wo-sign-line"></div></div><div class="wo-sign-box"><div class="wo-sign-lbl">PM</div><div class="wo-sign-line"></div></div></div></div>’;
+});
+}
+
+if (jobType===‘EXT’||jobType===‘BOTH’) {
+if (jobType===‘BOTH’&&roomsHTML) roomsHTML+=’<div class="wo-divider">Exterior</div>’;
+EXT_SIDES.filter(function(s){return sideOn[s.id];}).forEach(function(side) {
+var snEl=document.querySelector(‘textarea[data-side=”’+side.id+’”][data-field=“side-notes”]’);
+var sideNotes=snEl?snEl.value.trim():’’;
+var scopeHTML=’’;
+EXT_ITEMS.forEach(function(item) {
+var mchk=document.querySelector(’#sc-’+side.id+’-’+item.id+’ .mchk’);
+if (!mchk||!mchk.classList.contains(‘on’)) return;
+var cEl=document.querySelector(‘input[data-side=”’+side.id+’”][data-item=”’+item.id+’”][data-field=“color”]’);
+var shEl=document.querySelector(‘select[data-side=”’+side.id+’”][data-item=”’+item.id+’”][data-field=“sheen”]’);
+var nEl=document.querySelector(‘textarea[data-side=”’+side.id+’”][data-item=”’+item.id+’”][data-field=“notes”]’);
+var qEl=document.querySelector(‘select[data-side=”’+side.id+’”][data-item=”’+item.id+’”][data-field=“qty”]’);
+var color=cEl?cEl.value.trim():’’;
+var sheen=shEl?shEl.value.trim():’’;
+var notes=nEl?nEl.value.trim():’’;
+var qty=qEl?qEl.value.trim():’’;
+var tags=’’;
+if (qty) tags+=’<span class="wo-color-tag">Qty: ‘+qty+’</span>’;
+if (color) tags+=’<span class="wo-color-tag">Color: ‘+color+(sheen?’ - ‘+sheen:’’)+’</span>’;
+scopeHTML+=’<li><div class="wo-empty-box"></div><div style="flex:1;"><strong>’+item.label+’</strong>’+(tags?’<div style="margin-top:3px;">’+tags+’</div>’:’’)+(notes?’<div style="font-size:11px;color:var(--mid);margin-top:3px;font-style:italic;">’+notes+’</div>’:’’)+’</div></li>’;
+});
+var listHTML=scopeHTML?’<ul class="wo-checklist">’+scopeHTML+’</ul>’:’<p style="font-size:12px;color:var(--gray);">No scope items selected.</p>’;
+roomsHTML+=’<div class="wo-room"><div class="wo-room-hdr ext">’+side.label+’</div><div class="wo-room-body">’+listHTML+(sideNotes?’<div class="wo-notes ext">’+sideNotes+’</div>’:’’)+’</div><div class="wo-signoff"><div class="wo-sign-box"><div class="wo-sign-lbl">Project Lead</div><div class="wo-sign-line"></div></div><div class="wo-sign-box"><div class="wo-sign-lbl">Customer</div><div class="wo-sign-line"></div></div><div class="wo-sign-box"><div class="wo-sign-lbl">PM</div><div class="wo-sign-line"></div></div></div></div>’;
+});
+}
+
+document.getElementById(‘woOutput’).innerHTML=
+‘<div class="wo-head"><div class="wo-title">Fresh Coat Work Order</div><div class="wo-badge '+badgeClass+'">’+typeLabel+’ - ‘+jobId+’</div></div>’+
+‘<div class="wo-info-strip">’+
+‘<div><div class="wo-info-lbl">Customer</div><div class="wo-info-val">’+custName+’</div></div>’+
+‘<div><div class="wo-info-lbl">Phone</div><div class="wo-info-val"><a href="tel:'+custPhone+'" style="color:var(--green);text-decoration:none;">’+(custPhone||’-’)+’</a></div></div>’+
+‘<div><div class="wo-info-lbl">Address</div><div class="wo-info-val" style="font-size:11px;">’+(addr||’-’)+’</div></div>’+
+‘<div><div class="wo-info-lbl">Start Date</div><div class="wo-info-val">’+dateStr+’</div></div>’+
+‘<div><div class="wo-info-lbl">Project Lead</div><div class="wo-info-val">’+projLead+’</div></div>’+
+‘<div><div class="wo-info-lbl">PM</div><div class="wo-info-val">’+projMgr+’</div></div>’+
+‘</div>’+
+(roomsHTML||’<div style="padding:20px;text-align:center;color:var(--gray);font-size:13px;">No scope added.</div>’)+
+‘<div style="height:20px;"></div>’;
+
+document.getElementById(‘woSubtitle’).textContent=custName+(addr?’ - ‘+addr.split(’,’)[0]:’’);
+switchView(‘view-order’);
+}
+
+function openDailyReport() {
+var addr=gv(‘jobAddr’)||gv(‘jobId’)||’’;
+var lead=gv(‘projLead’)||’’;
+var el1=document.getElementById(‘dr-job’); if(el1&&addr) el1.value=addr;
+var el2=document.getElementById(‘dr-lead’); if(el2&&lead) el2.value=lead;
+document.getElementById(‘dr-date’).valueAsDate=new Date();
+buildAreaList();
+switchView(‘view-daily’);
+}
+
+function buildAreaList() {
+var wrap=document.getElementById(‘dr-area-list’);
+wrap.innerHTML=’’;
+var areas=[];
+if (jobType===‘INT’||jobType===‘BOTH’) {
+INT_ROOMS.filter(function(r){return r.id in roomSel;}).forEach(function(r){
+var qty=roomSel[r.id];
+areas.push(r.label+(r.qty&&qty?’ (x’+qty+’)’:’’));
+});
+}
+if (jobType===‘EXT’||jobType===‘BOTH’) {
+EXT_SIDES.filter(function(s){return sideOn[s.id];}).forEach(function(s){areas.push(s.label);});
+}
+if (!areas.length) { wrap.innerHTML=’<p style="font-size:12px;color:var(--gray);">No areas on this work order.</p>’; return; }
+areas.forEach(function(name) {
+var row=document.createElement(‘div’);
+row.className=‘dr-room-row’;
+row.innerHTML=
+‘<div class="dr-row-toggle" onclick="toggleDR(this)">’+
+‘<div class="mchk">’+CHECK+’</div>’+
+‘<span class="dr-row-name">’+name+’</span>’+
+‘<span style="font-size:10px;color:var(--gray);">v</span>’+
+‘</div>’+
+‘<div class="dr-row-body">’+
+‘<div class="field"><label>Completed today</label><textarea class="dr-area-notes" placeholder="e.g. First coat walls complete. Trim prepped." style="min-height:65px;"></textarea></div>’+
+‘<div class="field" style="margin-bottom:0;"><label>Completion</label><select class="dr-area-pct"><option value="">Select…</option><option>25% - Just started</option><option>50% - Halfway</option><option>75% - Nearly done</option><option>100% - Complete</option></select></div>’+
+‘</div>’;
+wrap.appendChild(row);
+});
+}
+
+function toggleDR(toggle) {
+var mchk=toggle.querySelector(’.mchk’);
+var body=toggle.nextElementSibling;
+var isOn=mchk.classList.toggle(‘on’);
+toggle.classList.toggle(‘active’,isOn);
+body.classList.toggle(‘open’,isOn);
+}
+
+function addCustomArea() {
+var wrap=document.getElementById(‘dr-area-list’);
+var row=document.createElement(‘div’);
+row.className=‘dr-room-row’;
+row.innerHTML=
+‘<div class="dr-row-toggle active" onclick="toggleDR(this)">’+
+‘<div class="mchk on">’+CHECK+’</div>’+
+‘<input type="text" placeholder="Area name..." onclick="event.stopPropagation()" style="flex:1;border:none;background:transparent;font-family:Sora,sans-serif;font-size:13px;font-weight:600;color:var(--dark);outline:none;">’+
+‘<span style="font-size:10px;color:var(--gray);">v</span>’+
+‘</div>’+
+‘<div class="dr-row-body open">’+
+‘<div class="field"><label>Completed today</label><textarea class="dr-area-notes" placeholder="Describe work done..." style="min-height:65px;"></textarea></div>’+
+‘<div class="field" style="margin-bottom:0;"><label>Completion</label><select class="dr-area-pct"><option value="">Select…</option><option>25% - Just started</option><option>50% - Halfway</option><option>75% - Nearly done</option><option>100% - Complete</option></select></div>’+
+‘</div>’;
+wrap.appendChild(row);
+}
+
+function addPaintEntry() {
+paintCount++;
+var wrap=document.getElementById(‘paint-entries’);
+var div=document.createElement(‘div’);
+div.className=‘paint-entry’;
+div.innerHTML=
+‘<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">’+
+‘<span style="font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;">Paint #’+paintCount+’</span>’+
+‘<button class="remove-btn" onclick="this.closest(\'.paint-entry\').remove()">Remove</button>’+
+‘</div>’+
+‘<div class="grid2" style="margin-bottom:6px;">’+
+‘<div class="field" style="margin-bottom:0;"><label>Color Name</label><input type="text" class="pe-color" placeholder="e.g. Repose Gray"></div>’+
+‘<div class="field" style="margin-bottom:0;"><label>Gallons Used</label><input type="number" class="pe-gal" placeholder="2" step="0.5" min="0"></div>’+
+‘</div>’+
+‘<div class="field"><label>Sheen / Product</label><input type="text" class="pe-sheen" placeholder="e.g. SW Emerald Eggshell"></div>’;
+wrap.appendChild(div);
+}
+
+function sendDailyReport() {
+var date=document.getElementById(‘dr-date’).value;
+var job=document.getElementById(‘dr-job’).value||’-’;
+var lead=document.getElementById(‘dr-lead’).value||’-’;
+var pmEmail=document.getElementById(‘dr-pmemail’).value.trim();
+var start=document.getElementById(‘dr-start’).value||’-’;
+var end=document.getElementById(‘dr-end’).value||’-’;
+var crew=document.getElementById(‘dr-crew’).value||’-’;
+var issues=document.getElementById(‘dr-issues’).value.trim()||‘None reported.’;
+var notes=document.getElementById(‘dr-notes’).value.trim()||‘None.’;
+var photos=document.getElementById(‘dr-photos’).value.trim()||‘None noted.’;
+var tomorrow=document.getElementById(‘dr-tomorrow’).value.trim()||‘TBD.’;
+if (!pmEmail) { showToast(‘Enter PM email first’); return; }
+var dateStr=date?new Date(date+‘T12:00:00’).toLocaleDateString(‘en-US’,{weekday:‘short’,month:‘short’,day:‘numeric’,year:‘numeric’}):‘Today’;
+var areasText=’’;
+document.querySelectorAll(’#dr-area-list .dr-room-row’).forEach(function(row) {
+var tog=row.querySelector(’.dr-row-toggle’);
+var isOn=tog.querySelector(’.mchk’)&&tog.querySelector(’.mchk’).classList.contains(‘on’);
+if (!isOn) return;
+var nameEl=row.querySelector(’.dr-row-name’)||row.querySelector(‘input[type=text]’);
+var name=nameEl?(nameEl.textContent||nameEl.value||‘Area’):‘Area’;
+var rNotes=row.querySelector(’.dr-area-notes’)?row.querySelector(’.dr-area-notes’).value.trim():’’;
+var pct=row.querySelector(’.dr-area-pct’)?row.querySelector(’.dr-area-pct’).value:’’;
+areasText+=’  - ‘+name+(pct?’ [’+pct+’]’:’’)+’\n’;
+if (rNotes) areasText+=’    ‘+rNotes+’\n’;
+});
+if (!areasText) areasText=’  No areas logged.\n’;
+var paintText=’’;
+document.querySelectorAll(’.paint-entry’).forEach(function(entry) {
+var color=entry.querySelector(’.pe-color’)?entry.querySelector(’.pe-color’).value.trim():’-’;
+var gal=entry.querySelector(’.pe-gal’)?entry.querySelector(’.pe-gal’).value.trim():’-’;
+var sheen=entry.querySelector(’.pe-sheen’)?entry.querySelector(’.pe-sheen’).value.trim():’-’;
+if (color||gal) paintText+=’  - ‘+color+’ | ‘+gal+’ gal | ‘+sheen+’\n’;
+});
+if (!paintText) paintText=’  None logged.\n’;
+var subject=encodeURIComponent(’[Fresh Coat] Daily Report - ‘+job+’ - ‘+dateStr);
+var body=encodeURIComponent(
+‘FRESH COAT SURFACES - DAILY REPORT\n====================================\n\n’+
+‘JOB: ‘+job+’\nDATE: ‘+dateStr+’\nTEAM LEAD: ‘+lead+’\nCREW ON SITE: ‘+crew+’\nHOURS: ‘+start+’ to ‘+end+’\n\n’+
+‘————————————\nWORK COMPLETED TODAY\n————————————\n’+areasText+’\n’+
+‘————————————\nPAINT USED\n————————————\n’+paintText+’\n’+
+‘————————————\nISSUES / BLOCKERS\n————————————\n’+issues+’\n\n’+
+‘————————————\nGENERAL NOTES\n————————————\n’+notes+’\n\n’+
+‘————————————\nPHOTO NOTES\n————————————\n’+photos+’\n\n’+
+‘————————————\nTOMORROWS PLAN\n————————————\n’+tomorrow+’\n\n’+
+‘====================================\nSent via Fresh Coat Work Order System’
+);
+window.location.href=‘mailto:’+pmEmail+’?subject=’+subject+’&body=’+body;
+showToast(‘Opening email…’);
+}
+
+function gv(id){var el=document.getElementById(id);return el?el.value.trim():’’;}
+function scrollTop(){document.body.scrollTop=0;document.documentElement.scrollTop=0;}
+function switchView(id){document.querySelectorAll(’.view’).forEach(function(v){v.classList.remove(‘active’);});document.getElementById(id).classList.add(‘active’);scrollTop();notifyHeight();}
+function showToast(msg){var t=document.getElementById(‘toast’);t.textContent=msg;t.classList.add(‘show’);setTimeout(function(){t.classList.remove(‘show’);},2600);}
+function notifyHeight(){try{window.parent.postMessage({height:document.body.scrollHeight},’*’);}catch(e){}}
+var ro=new ResizeObserver(notifyHeight);ro.observe(document.body);
+document.getElementById(‘startDate’).valueAsDate=new Date();
+</script>
+
+</body>
+</html>
